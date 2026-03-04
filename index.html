@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Much Carbon Is Covered?</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        html,body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#0a0f14 0%,#0d1117 50%,#0f1419 100%);color:#e6edf3;height:100vh;overflow:hidden}
+        .app{display:grid;grid-template-rows:auto 1fr;height:100vh;padding:16px 20px;gap:14px}
+        .header{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 0 8px}
+        .header h1{color:#f0f6fc;font-size:2.2rem;font-weight:700;letter-spacing:-0.04em;text-align:center;background:linear-gradient(135deg,#2ea043 0%,#3fb950 20%,#58a6ff 50%,#79c0ff 80%,#2ea043 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;padding-bottom:8px;animation:gradientShift 8s ease infinite;background-size:200% 200%}@keyframes gradientShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+        .header h1::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:120px;height:2px;background:linear-gradient(90deg,transparent,#2ea043,#58a6ff,transparent);border-radius:1px}
+        .header .subtitle{color:#6e7681;font-size:11px;text-transform:uppercase;letter-spacing:2px;margin-top:6px;font-weight:500}
+        .main{display:grid;grid-template-columns:1fr 320px;gap:16px;min-height:0}
+        .map-panel{background:linear-gradient(180deg,rgba(22,27,34,0.95) 0%,rgba(22,27,34,0.98) 100%);border-radius:16px;border:1px solid rgba(48,54,61,0.6);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);position:relative}
+        #map{flex:1;min-height:0}
+        .year-bar{background:linear-gradient(180deg,#1c2128 0%,#21262d 100%);padding:14px 24px;display:flex;align-items:center;gap:24px;border-top:1px solid rgba(48,54,61,0.5)}
+        .year-label{color:#6e7681;font-size:10px;text-transform:uppercase;letter-spacing:1.2px;font-weight:600}
+        .slider-wrap{flex:1;display:flex;align-items:center;gap:16px}
+        .global-coverage{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(46,160,67,0.15),rgba(46,160,67,0.05));padding:8px 16px;border-radius:8px;border:1px solid rgba(46,160,67,0.3)}
+        .global-coverage .gc-label{color:#8b949e;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+        .global-coverage .gc-value{font-size:20px;font-weight:700;color:#3fb950;font-variant-numeric:tabular-nums}
+        .global-emissions{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(88,166,255,0.15),rgba(88,166,255,0.05));padding:8px 16px;border-radius:8px;border:1px solid rgba(88,166,255,0.3)}
+        .global-emissions .ge-label{color:#8b949e;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+        .global-emissions .ge-value{font-size:20px;font-weight:700;color:#58a6ff;font-variant-numeric:tabular-nums}
+        .global-emissions .ge-unit{color:#6e7681;font-size:10px;font-weight:500}
+        .year-slider{flex:1;height:5px;-webkit-appearance:none;background:linear-gradient(90deg,#238636 0%,#2ea043 25%,#58a6ff 50%,#da7a2c 75%,#f85149 100%);border-radius:4px;outline:none;cursor:pointer}
+        .year-slider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;background:linear-gradient(135deg,#ffffff,#e6edf3);border-radius:50%;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.5),0 0 0 3px rgba(88,166,255,0.2);transition:transform 0.15s ease,box-shadow 0.15s ease}
+        .year-slider::-webkit-slider-thumb:hover{transform:scale(1.1);box-shadow:0 2px 16px rgba(0,0,0,0.6),0 0 0 4px rgba(88,166,255,0.3)}
+        .year-slider::-moz-range-thumb{width:20px;height:20px;background:linear-gradient(135deg,#ffffff,#e6edf3);border-radius:50%;cursor:pointer;border:none;box-shadow:0 2px 12px rgba(0,0,0,0.5)}
+        .year-display{font-size:24px;font-weight:700;color:#58a6ff;min-width:60px;text-align:center;font-variant-numeric:tabular-nums}
+        .play-btn{background:linear-gradient(180deg,#2d333b 0%,#22272e 100%);border:1px solid rgba(48,54,61,0.8);color:#e6edf3;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:500;transition:all 0.2s ease;font-family:inherit}
+        .play-btn:hover{background:linear-gradient(180deg,#383f47 0%,#2d333b 100%);border-color:rgba(88,166,255,0.5);box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+        .play-btn:active{transform:translateY(1px)}
+        .sidebar{display:flex;flex-direction:column;gap:10px;overflow:hidden}
+        .sidebar::-webkit-scrollbar{width:6px}
+        .sidebar::-webkit-scrollbar-track{background:transparent}
+        .sidebar::-webkit-scrollbar-thumb{background:rgba(88,166,255,0.3);border-radius:3px}
+        .sidebar::-webkit-scrollbar-thumb:hover{background:rgba(88,166,255,0.5)}
+        .widget{background:linear-gradient(180deg,rgba(22,27,34,0.95) 0%,rgba(22,27,34,0.98) 100%);border-radius:12px;border:1px solid rgba(48,54,61,0.6);padding:12px;flex-shrink:0;box-shadow:0 4px 20px rgba(0,0,0,0.25);transition:border-color 0.2s ease}
+        .widget:hover{border-color:rgba(48,54,61,0.9)}
+        .widget.map-widget{flex:1;min-height:120px;display:flex;flex-direction:column}
+        .widget-head{margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(48,54,61,0.5);text-align:center;position:relative}
+        .widget-head h3{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;background:linear-gradient(135deg,#f0f6fc 0%,#8b949e 50%,#58a6ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:inline-block;position:relative;padding:0 12px}
+        .widget-head h3::before,.widget-head h3::after{content:'';position:absolute;top:50%;width:20px;height:1px;background:linear-gradient(90deg,transparent,rgba(88,166,255,0.4))}
+        .widget-head h3::before{right:100%;transform:translateY(-50%)}
+        .widget-head h3::after{left:100%;transform:translateY(-50%);background:linear-gradient(90deg,rgba(88,166,255,0.4),transparent)}
+        #countryMap{flex:1;min-height:100px;border-radius:6px;overflow:hidden}
+        .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+        .stat-item{background:linear-gradient(180deg,rgba(33,38,45,0.8) 0%,rgba(33,38,45,0.6) 100%);padding:10px 8px;border-radius:8px;text-align:center;border:1px solid rgba(48,54,61,0.4);transition:all 0.2s ease}
+        .stat-item:hover{border-color:rgba(48,54,61,0.7);background:linear-gradient(180deg,rgba(33,38,45,0.9) 0%,rgba(33,38,45,0.7) 100%)}
+        .stat-item.full{grid-column:1/-1}
+        .stat-value{font-size:20px;font-weight:700;color:#58a6ff;line-height:1.2;font-variant-numeric:tabular-nums}
+        .stat-value.green{background:linear-gradient(135deg,#3fb950,#2ea043);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .stat-value.orange{background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .stat-value.red{background:linear-gradient(135deg,#f85149,#da3633);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .stat-label{color:#6e7681;font-size:8px;text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;font-weight:500}
+        /* Info Button */
+        .info-btn{position:absolute;top:16px;right:20px;background:linear-gradient(135deg,rgba(88,166,255,0.18),rgba(88,166,255,0.08));border:1px solid rgba(88,166,255,0.35);color:#58a6ff;padding:12px 22px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;display:flex;align-items:center;gap:10px;transition:all 0.25s ease;box-shadow:0 2px 12px rgba(88,166,255,0.1)}
+        .info-btn:hover{background:linear-gradient(135deg,rgba(88,166,255,0.28),rgba(88,166,255,0.18));border-color:rgba(88,166,255,0.6);box-shadow:0 6px 24px rgba(88,166,255,0.25);transform:translateY(-1px)}
+        .info-btn svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none}
+        /* Modal Overlay */
+        .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:all 0.3s ease}
+        .modal-overlay.active{opacity:1;visibility:visible}
+        .modal{background:linear-gradient(180deg,#161b22 0%,#0d1117 100%);border:1px solid rgba(48,54,61,0.8);border-radius:20px;max-width:720px;width:90%;max-height:85vh;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.6),0 0 1px rgba(88,166,255,0.3);transform:translateY(20px) scale(0.95);transition:transform 0.3s ease}
+        .modal-overlay.active .modal{transform:translateY(0) scale(1)}
+        .modal-header{padding:24px 28px 20px;border-bottom:1px solid rgba(48,54,61,0.5);display:flex;align-items:center;justify-content:space-between}
+        .modal-header h2{font-size:18px;font-weight:600;background:linear-gradient(135deg,#f0f6fc 0%,#58a6ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .modal-close{background:none;border:none;color:#6e7681;cursor:pointer;padding:8px;border-radius:8px;transition:all 0.2s ease;display:flex;align-items:center;justify-content:center}
+        .modal-close:hover{background:rgba(248,81,73,0.1);color:#f85149}
+        .modal-close svg{width:20px;height:20px;stroke:currentColor;stroke-width:2}
+        .modal-body{padding:24px 28px;overflow-y:auto;max-height:calc(85vh - 80px)}
+        .modal-section{margin-bottom:24px}
+        .modal-section:last-child{margin-bottom:0}
+        .modal-section h3{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#58a6ff;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+        .modal-section h3::before{content:'';width:3px;height:14px;background:linear-gradient(180deg,#58a6ff,#2ea043);border-radius:2px}
+        .modal-section p{color:#8b949e;font-size:14px;line-height:1.7;margin-bottom:12px}
+        .modal-section p:last-child{margin-bottom:0}
+        .modal-highlight{background:linear-gradient(135deg,rgba(46,160,67,0.1),rgba(46,160,67,0.05));border:1px solid rgba(46,160,67,0.2);border-radius:10px;padding:16px;margin-top:16px}
+        .modal-highlight p{color:#3fb950;font-size:13px}
+        .modal-sources{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
+        .source-badge{background:linear-gradient(135deg,rgba(33,38,45,0.9),rgba(33,38,45,0.7));border:1px solid rgba(48,54,61,0.6);border-radius:8px;padding:12px 16px;flex:1;min-width:200px;transition:all 0.2s ease}
+        .source-badge:hover{border-color:rgba(88,166,255,0.4);background:linear-gradient(135deg,rgba(33,38,45,1),rgba(33,38,45,0.85));transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+        .source-badge .source-label{font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:#6e7681;margin-bottom:4px}
+        .source-badge .source-name{font-size:13px;font-weight:500;color:#f0f6fc}
+        .source-badge a{color:#58a6ff;text-decoration:none;transition:color 0.2s ease}
+        .source-badge a:hover{color:#79c0ff;text-decoration:underline}
+        /* Authors Section */
+        .modal-authors{background:linear-gradient(135deg,rgba(88,166,255,0.08),rgba(46,160,67,0.05));border:1px solid rgba(88,166,255,0.15);border-radius:12px;padding:20px;margin-top:8px;text-align:center}
+        .modal-authors .authors-label{font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:#6e7681;margin-bottom:10px}
+        .modal-authors .authors-names{font-size:16px;font-weight:600;color:#f0f6fc;margin-bottom:6px}
+        .modal-authors .authors-affiliation{font-size:12px;color:#8b949e;line-height:1.5}
+        .modal-authors .authors-affiliation strong{color:#58a6ff;font-weight:500}
+        /* Country Search - Floating on map */
+        .search-container{position:absolute;top:16px;left:16px;width:280px;z-index:100}
+        .search-input{width:100%;background:rgba(22,27,34,0.95);backdrop-filter:blur(8px);border:1px solid rgba(48,54,61,0.8);border-radius:10px;padding:12px 14px 12px 40px;color:#e6edf3;font-size:13px;font-family:inherit;outline:none;transition:all 0.2s ease;box-shadow:0 4px 16px rgba(0,0,0,0.4)}
+        .search-input:focus{border-color:rgba(88,166,255,0.6);box-shadow:0 4px 20px rgba(0,0,0,0.5),0 0 0 3px rgba(88,166,255,0.15)}
+        .search-input::placeholder{color:#6e7681}
+        .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:#6e7681;stroke-width:2;fill:none;pointer-events:none}
+        .search-results{position:absolute;top:100%;left:0;right:0;background:rgba(33,38,45,0.98);backdrop-filter:blur(8px);border:1px solid rgba(48,54,61,0.8);border-radius:10px;margin-top:6px;max-height:240px;overflow-y:auto;z-index:100;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+        .search-results.active{display:block}
+        .search-result{padding:10px 14px;cursor:pointer;font-size:13px;color:#e6edf3;border-bottom:1px solid rgba(48,54,61,0.4);transition:background 0.15s ease}
+        .search-result:last-child{border-bottom:none}
+        .search-result:hover,.search-result.selected{background:rgba(88,166,255,0.15)}
+        .search-result-code{color:#6e7681;font-size:11px;margin-left:6px}
+        /* Trend Sparkline */
+        .trend-container{margin-top:8px;padding:8px;background:linear-gradient(180deg,rgba(33,38,45,0.6) 0%,rgba(33,38,45,0.4) 100%);border-radius:6px;border:1px solid rgba(48,54,61,0.4)}
+        .trend-label{font-size:8px;text-transform:uppercase;letter-spacing:0.8px;color:#6e7681;margin-bottom:4px;text-align:center}
+        .trend-chart{height:40px;position:relative}
+        .trend-svg{width:100%;height:100%}
+        .trend-line{fill:none;stroke:url(#trendGradient);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+        .trend-area{fill:url(#trendAreaGradient);opacity:0.3}
+        .trend-dot{fill:#3fb950;r:3}
+        /* Keyboard hints */
+        .keyboard-hints{position:fixed;bottom:16px;left:16px;display:flex;gap:8px;opacity:0.6;font-size:10px;color:#6e7681;z-index:50}
+        .kbd{background:rgba(33,38,45,0.9);border:1px solid rgba(48,54,61,0.6);border-radius:4px;padding:3px 6px;font-family:monospace}
+        /* Mobile Responsive */
+        @media(max-width:900px){.main{grid-template-columns:1fr;grid-template-rows:1fr auto}.sidebar{flex-direction:row;flex-wrap:wrap;overflow-x:auto;gap:10px;padding-bottom:8px}.widget{min-width:280px;flex:1}.widget.map-widget{min-height:200px}.year-bar{flex-wrap:wrap;gap:12px;padding:12px 16px}.global-coverage,.global-emissions{padding:6px 12px}.gc-value,.ge-value{font-size:16px}.keyboard-hints{display:none}.search-container{width:220px}}
+        @media(max-width:600px){.app{padding:10px}.header h1{font-size:1.6rem}.year-bar{flex-direction:column;align-items:stretch}.slider-wrap{order:1}.play-btn{flex:1}.global-coverage,.global-emissions{justify-content:center}.info-btn{padding:10px 16px;font-size:12px;top:10px;right:10px}.search-container{width:calc(100% - 32px);left:16px;right:16px}}
+        /* Skip link for accessibility */
+        .skip-link{position:absolute;top:-40px;left:0;background:#58a6ff;color:#0d1117;padding:8px 16px;z-index:1001;transition:top 0.3s ease}
+        .skip-link:focus{top:0}
+    </style>
+</head>
+<body>
+<a href="#map" class="skip-link">Skip to map</a>
+<div class="app" role="application" aria-label="Carbon Policy Coverage Map">
+    <button class="info-btn" onclick="toggleModal()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        About This Analysis
+    </button>
+    <div class="header">
+        <h1>How Much Carbon Is Covered?</h1>
+        <span class="subtitle"><em>A Global Climate Policy Tracker</em></span>
+    </div>
+    
+    <div class="main">
+        <div class="map-panel">
+            <div class="search-container">
+                <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input type="text" class="search-input" id="countrySearch" placeholder="Search countries..." autocomplete="off" aria-label="Search for a country">
+                <div class="search-results" id="searchResults" role="listbox"></div>
+            </div>
+            <div id="map"></div>
+            <div class="year-bar">
+                <span class="year-label">Year</span>
+                <div class="slider-wrap">
+                    <input type="range" class="year-slider" id="yearSlider" min="1990" max="2025" value="2024">
+                    <div class="year-display" id="yearDisplay">2024</div>
+                </div>
+                <button class="play-btn" id="playBtn" onclick="togglePlay()">Play</button>
+                <button class="play-btn" onclick="resetYear()">Reset</button>
+                <div class="global-coverage">
+                    <span class="gc-label">Global Coverage</span>
+                    <span class="gc-value" id="globalCoverage">--%</span>
+                </div>
+                <div class="global-emissions">
+                    <span class="ge-label">World Emissions</span>
+                    <span class="ge-value" id="globalEmissions">--</span>
+                    <span class="ge-unit">Gt CO2</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sidebar">
+            <div class="widget map-widget">
+                <div class="widget-head">
+                    <h3 id="countryName">Select a Country</h3>
+                </div>
+                <div id="countryMap"></div>
+            </div>
+            
+            <div class="widget">
+                <div class="widget-head">
+                    <h3>Emissions Offsets</h3>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-item full">
+                        <div class="stat-value" id="totalEmissions">--</div>
+                        <div class="stat-label">Total Emissions (Mt CO2)</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value green" id="coveredEmissions">--</div>
+                        <div class="stat-label">Covered (Mt)</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value red" id="uncoveredEmissions">--</div>
+                        <div class="stat-label">Uncovered (Mt)</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="widget">
+                <div class="widget-head">
+                    <h3>Coverage Statistics</h3>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-value orange" id="worldShare">--</div>
+                        <div class="stat-label">Contribution to World Emissions</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value green" id="nationalCoverage">--</div>
+                        <div class="stat-label">National Emissions Under Policy</div>
+                    </div>
+                </div>
+                <div class="trend-container" id="trendContainer" style="display:none">
+                    <div class="trend-label">Coverage Trend (1990-2025)</div>
+                    <div class="trend-chart">
+                        <svg class="trend-svg" id="trendSvg" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="trendGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#2ea043"/>
+                                    <stop offset="100%" stop-color="#58a6ff"/>
+                                </linearGradient>
+                                <linearGradient id="trendAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="#3fb950"/>
+                                    <stop offset="100%" stop-color="transparent"/>
+                                </linearGradient>
+                            </defs>
+                            <path class="trend-area" id="trendArea"></path>
+                            <path class="trend-line" id="trendLine"></path>
+                            <circle class="trend-dot" id="trendDot" style="display:none"></circle>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="keyboard-hints" aria-hidden="true">
+    <span><span class="kbd">←</span><span class="kbd">→</span> Year</span>
+    <span><span class="kbd">/</span> Search</span>
+    <span><span class="kbd">Esc</span> Close</span>
+</div>
+
+<!-- Info Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>About This Analysis</h2>
+            <button class="modal-close" onclick="toggleModal()">
+                <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-section">
+                <h3>Overview</h3>
+                <p>This dashboard tracks the global coverage of economic policies designed to regulate carbon emissions. These policies include carbon taxes, cap-and-trade systems, and carbon credit or offset mechanisms.</p>
+                <p>Policies may operate at the regional, national, or multinational level. Regional policies, such as those implemented by states or cities, are included in the statistics of their respective countries. For multinational coalitions, such as the European Union, each participating country receives weighted policy credit based on its share of GDP.</p>
+            </div>
+            
+            <div class="modal-section">
+                <h3>Timeline & Metrics</h3>
+                <p>The analysis spans <strong>35 years</strong>, from 1990 to 2025, allowing users to explore how the coverage of economic climate policies has evolved over time.</p>
+                <p>Alongside the timeline, a tracker displays the share of global carbon emissions currently covered by economic policies.</p>
+                <div class="modal-highlight">
+                    <p>Selecting a country reveals its contribution to total global emissions as well as the extent to which its emissions are covered by economic policy mechanisms.</p>
+                </div>
+            </div>
+            
+            <div class="modal-section">
+                <h3>Data Sources</h3>
+                <p>Carbon emissions data were sourced from Our World in Data, and information on economic policy coverage was drawn from the World Bank's Carbon Pricing Dashboard.</p>
+                <div class="modal-sources">
+                    <a href="https://ourworldindata.org/co2-emissions" target="_blank" rel="noopener noreferrer" class="source-badge" style="text-decoration:none">
+                        <div class="source-label">Carbon Emissions Data</div>
+                        <div class="source-name">Our World in Data <span style="font-size:11px;opacity:0.7">↗</span></div>
+                    </a>
+                    <a href="https://carbonpricingdashboard.worldbank.org/" target="_blank" rel="noopener noreferrer" class="source-badge" style="text-decoration:none">
+                        <div class="source-label">Economic Policy Coverage</div>
+                        <div class="source-name">World Bank Carbon Pricing Dashboard <span style="font-size:11px;opacity:0.7">↗</span></div>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="modal-section">
+                <h3>Authors</h3>
+                <div class="modal-authors">
+                    <div class="authors-label">Research & Visualization By</div>
+                    <div class="authors-names">Delany Broome & Walter Russ</div>
+                    <div class="authors-affiliation">Masters of Climate Change Solutions<br><strong>University of California, Berkeley</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================================
+// DATA FROM COMPLIANCE EMISSIONS CSV AND OWID-CO2-DATA
+// Coverage data derived from "Compliance Emissions.csv" (share of global emissions)
+// Country emissions from "owid-co2-data.csv"
+// ============================================================================
+
+// Initiative to Country ISO mapping
+const INITIATIVE_TO_COUNTRY = {
+    "Austria ETS": "AUT",
+    "Australia CPM": "AUS",
+    "Australia Safeguard Mechanism": "AUS",
+    "Canada federal OBPS": "CAN",
+    "Alberta TIER": "CAN",
+    "BC OBPS": "CAN",
+    "New Brunswick OBPS": "CAN",
+    "Newfoundland and Labrador PSS": "CAN",
+    "Nova Scotia OBPS": "CAN",
+    "Saskatchewan OBPS": "CAN",
+    "Ontario EPS": "CAN",
+    "Quebec CaT": "CAN",
+    "BC carbon tax": "CAN",
+    "Canada federal fuel charge": "CAN",
+    "Chile carbon tax": "CHL",
+    "China national ETS": "CHN",
+    "Beijing pilot ETS": "CHN",
+    "Chongqing pilot ETS": "CHN",
+    "Fujian pilot ETS": "CHN",
+    "Guangdong pilot ETS": "CHN",
+    "Hubei pilot ETS": "CHN",
+    "Shanghai pilot ETS": "CHN",
+    "Shenzhen pilot ETS": "CHN",
+    "Tianjin pilot ETS": "CHN",
+    "Colombia carbon tax": "COL",
+    "Denmark carbon tax": "DNK",
+    "Estonia carbon tax": "EST",
+    "EU ETS": "EU",
+    "Finland carbon tax": "FIN",
+    "France carbon tax": "FRA",
+    "Germany ETS": "DEU",
+    "Iceland carbon tax": "ISL",
+    "Indonesia ETS": "IDN",
+    "Ireland carbon tax": "IRL",
+    "Japan carbon tax": "JPN",
+    "Tokyo CaT": "JPN",
+    "Saitama ETS": "JPN",
+    "Kazakhstan ETS": "KAZ",
+    "Korea ETS": "KOR",
+    "Latvia carbon tax": "LVA",
+    "Liechtenstein carbon tax": "LIE",
+    "Luxembourg carbon tax": "LUX",
+    "Mexico carbon tax": "MEX",
+    "Mexico ETS": "MEX",
+    "Montenegro ETS": "MNE",
+    "Netherlands carbon tax": "NLD",
+    "New Zealand ETS": "NZL",
+    "Norway carbon tax": "NOR",
+    "Poland carbon tax": "POL",
+    "Portugal carbon tax": "PRT",
+    "RGGI": "USA",
+    "California CaT": "USA",
+    "Washington CCA": "USA",
+    "Oregon ETS": "USA",
+    "Massachusetts ETS": "USA",
+    "Singapore carbon tax": "SGP",
+    "Slovenia carbon tax": "SVN",
+    "South Africa carbon tax": "ZAF",
+    "Spain carbon tax": "ESP",
+    "Sweden carbon tax": "SWE",
+    "Switzerland carbon tax": "CHE",
+    "Switzerland ETS": "CHE",
+    "UK Carbon Price Support": "GBR",
+    "UK ETS": "GBR",
+    "Ukraine carbon tax": "UKR",
+    "Argentina carbon tax": "ARG"
+};
+
+// EU ETS member countries
+const EU_COUNTRIES = ["AUT","BEL","BGR","HRV","CYP","CZE","DNK","EST","FIN","FRA","DEU","GRC","HUN","IRL","ITA","LVA","LTU","LUX","MLT","NLD","POL","PRT","ROU","SVK","SVN","ESP","SWE","ISL","LIE","NOR"];
+
+// Coverage data by year (from Compliance Emissions.csv - converted to percentage * 100)
+// Values represent share of global emissions covered
+const COVERAGE_DATA = {
+    // Year: { ISO: coverage_pct, ... }
+    1990: { FIN: 0.19, POL: 0.29, SWE: 0.17 },
+    1991: { FIN: 0.19, NOR: 0.09, POL: 0.27, SWE: 0.16 },
+    1992: { DNK: 0.04, FIN: 0.19, NOR: 0.09, POL: 0.26, SWE: 0.16 },
+    1995: { DNK: 0.04, FIN: 0.18, NOR: 0.10, POL: 0.24, SWE: 0.16 },
+    2000: { DNK: 0.04, FIN: 0.17, NOR: 0.12, POL: 0.21, SWE: 0.15, EST: 0.01 },
+    2005: { EU: 4.2, NOR: 0.12, CHE: 0.08, NZL: 0.07 },
+    2008: { EU: 4.1, NOR: 0.11, CHE: 0.08, NZL: 0.07, CAN: 0.35 },
+    2010: { EU: 3.9, NOR: 0.11, CHE: 0.08, NZL: 0.07, CAN: 0.33, JPN: 0.02, KAZ: 0.15 },
+    2012: { EU: 3.8, NOR: 0.11, CHE: 0.08, NZL: 0.07, CAN: 0.35, JPN: 0.04, KAZ: 0.22, AUS: 0.77, USA: 0.29 },
+    2013: { EU: 3.7, NOR: 0.11, CHE: 0.08, NZL: 0.07, CAN: 0.35, JPN: 0.04, KAZ: 0.20, AUS: 0.75, USA: 0.30, CHN: 0.38 },
+    2014: { EU: 3.6, NOR: 0.11, CHE: 0.08, NZL: 0.07, CAN: 0.35, JPN: 0.04, KOR: 1.18, MEX: 0.10, AUS: 0.74, USA: 0.31, CHN: 0.45 },
+    2015: { EU: 3.5, NOR: 0.11, CHE: 0.08, NZL: 0.07, CAN: 0.36, JPN: 0.04, KOR: 1.20, MEX: 0.10, USA: 0.32, CHN: 0.52 },
+    2016: { EU: 3.5, NOR: 0.11, CHE: 0.08, NZL: 0.07, CAN: 0.34, JPN: 0.04, KOR: 1.18, MEX: 0.10, USA: 0.35, CHN: 0.58, CHL: 0.05, COL: 0.03 },
+    2017: { EU: 3.5, NOR: 0.11, CHE: 0.08, NZL: 0.07, CAN: 0.34, JPN: 0.04, KOR: 1.16, MEX: 0.10, USA: 0.38, CHN: 0.65, CHL: 0.06, COL: 0.04, ARG: 0.10 },
+    2018: { EU: 3.4, NOR: 0.11, CHE: 0.08, NZL: 0.07, CAN: 0.33, JPN: 0.04, KOR: 1.15, MEX: 0.10, USA: 0.42, CHN: 0.72, CHL: 0.06, COL: 0.04, ARG: 0.12 },
+    2019: { EU: 3.3, NOR: 0.11, CHE: 0.08, NZL: 0.07, CAN: 0.33, JPN: 0.04, KOR: 1.13, MEX: 0.10, USA: 0.48, CHN: 0.80, CHL: 0.06, COL: 0.04, ARG: 0.13, ZAF: 0.32, SGP: 0.09 },
+    2020: { EU: 3.2, NOR: 0.11, CHE: 0.08, NZL: 0.08, CAN: 0.32, JPN: 0.04, KOR: 1.10, MEX: 0.10, USA: 0.55, CHN: 0.88, CHL: 0.06, COL: 0.04, ARG: 0.14, ZAF: 0.35, SGP: 0.09 },
+    2021: { EU: 3.1, NOR: 0.11, CHE: 0.08, NZL: 0.08, CAN: 0.31, JPN: 0.04, KOR: 1.08, MEX: 0.10, USA: 0.62, CHN: 7.40, GBR: 0.28, CHL: 0.06, COL: 0.04, ARG: 0.14, ZAF: 0.38, SGP: 0.10 },
+    2022: { EU: 3.0, NOR: 0.11, CHE: 0.08, NZL: 0.08, CAN: 0.31, JPN: 0.04, KOR: 1.05, MEX: 0.10, USA: 0.68, CHN: 7.35, GBR: 0.28, CHL: 0.06, COL: 0.04, ARG: 0.14, ZAF: 0.40, SGP: 0.10, AUT: 0.058 },
+    2023: { EU: 3.0, NOR: 0.11, CHE: 0.08, NZL: 0.08, CAN: 0.30, JPN: 0.04, KOR: 1.02, MEX: 0.10, USA: 0.74, CHN: 7.30, GBR: 0.28, CHL: 0.06, COL: 0.04, ARG: 0.14, ZAF: 0.42, SGP: 0.10, AUT: 0.055, AUS: 0.28, IDN: 0.50 },
+    2024: { EU: 3.0, NOR: 0.11, CHE: 0.08, NZL: 0.08, CAN: 0.30, JPN: 0.04, KOR: 1.00, MEX: 0.10, USA: 0.80, CHN: 7.25, GBR: 0.28, CHL: 0.06, COL: 0.04, ARG: 0.14, ZAF: 0.45, SGP: 0.10, AUT: 0.055, AUS: 0.28, IDN: 0.55 },
+    2025: { EU: 3.0, NOR: 0.11, CHE: 0.08, NZL: 0.08, CAN: 0.30, JPN: 0.04, KOR: 0.98, MEX: 0.10, USA: 0.85, CHN: 7.20, GBR: 0.28, CHL: 0.06, COL: 0.04, ARG: 0.14, ZAF: 0.48, SGP: 0.10, AUT: 0.05, AUS: 0.28, IDN: 0.60 }
+};
+
+// Country emissions data (Mt CO2 per year, from owid-co2-data.csv)
+const EMISSIONS_DATA = {
+    USA: { name: "United States", emissions: { 2000: 5700, 2005: 5800, 2010: 5400, 2015: 5000, 2020: 4500, 2024: 4800 }, share: 13.5 },
+    CHN: { name: "China", emissions: { 2000: 3400, 2005: 5800, 2010: 8500, 2015: 10000, 2020: 10700, 2024: 11500 }, share: 30.8 },
+    IND: { name: "India", emissions: { 2000: 1100, 2005: 1400, 2010: 2000, 2015: 2300, 2020: 2400, 2024: 2800 }, share: 7.5 },
+    RUS: { name: "Russia", emissions: { 2000: 1500, 2005: 1550, 2010: 1650, 2015: 1700, 2020: 1600, 2024: 1750 }, share: 4.7 },
+    JPN: { name: "Japan", emissions: { 2000: 1250, 2005: 1280, 2010: 1180, 2015: 1200, 2020: 1050, 2024: 1100 }, share: 3.0 },
+    DEU: { name: "Germany", emissions: { 2000: 850, 2005: 820, 2010: 790, 2015: 780, 2020: 650, 2024: 620 }, share: 1.7 },
+    GBR: { name: "United Kingdom", emissions: { 2000: 550, 2005: 540, 2010: 480, 2015: 400, 2020: 330, 2024: 340 }, share: 0.9 },
+    FRA: { name: "France", emissions: { 2000: 400, 2005: 410, 2010: 380, 2015: 340, 2020: 290, 2024: 300 }, share: 0.8 },
+    CAN: { name: "Canada", emissions: { 2000: 520, 2005: 550, 2010: 540, 2015: 550, 2020: 520, 2024: 560 }, share: 1.5 },
+    KOR: { name: "South Korea", emissions: { 2000: 450, 2005: 520, 2010: 590, 2015: 620, 2020: 590, 2024: 600 }, share: 1.6 },
+    AUS: { name: "Australia", emissions: { 2000: 380, 2005: 400, 2010: 420, 2015: 400, 2020: 390, 2024: 400 }, share: 1.1 },
+    BRA: { name: "Brazil", emissions: { 2000: 350, 2005: 380, 2010: 450, 2015: 480, 2020: 450, 2024: 480 }, share: 1.3 },
+    MEX: { name: "Mexico", emissions: { 2000: 380, 2005: 420, 2010: 450, 2015: 470, 2020: 420, 2024: 450 }, share: 1.2 },
+    IDN: { name: "Indonesia", emissions: { 2000: 320, 2005: 390, 2010: 480, 2015: 530, 2020: 560, 2024: 620 }, share: 1.7 },
+    ZAF: { name: "South Africa", emissions: { 2000: 380, 2005: 420, 2010: 450, 2015: 430, 2020: 400, 2024: 420 }, share: 1.1 },
+    SAU: { name: "Saudi Arabia", emissions: { 2000: 280, 2005: 340, 2010: 450, 2015: 530, 2020: 550, 2024: 580 }, share: 1.6 },
+    IRN: { name: "Iran", emissions: { 2000: 380, 2005: 470, 2010: 550, 2015: 610, 2020: 650, 2024: 680 }, share: 1.8 },
+    POL: { name: "Poland", emissions: { 2000: 310, 2005: 320, 2010: 330, 2015: 310, 2020: 290, 2024: 300 }, share: 0.8 },
+    ITA: { name: "Italy", emissions: { 2000: 450, 2005: 480, 2010: 420, 2015: 360, 2020: 300, 2024: 320 }, share: 0.9 },
+    ESP: { name: "Spain", emissions: { 2000: 310, 2005: 380, 2010: 300, 2015: 270, 2020: 220, 2024: 240 }, share: 0.6 },
+    NLD: { name: "Netherlands", emissions: { 2000: 180, 2005: 180, 2010: 180, 2015: 170, 2020: 150, 2024: 145 }, share: 0.4 },
+    TUR: { name: "Turkey", emissions: { 2000: 230, 2005: 280, 2010: 330, 2015: 370, 2020: 380, 2024: 420 }, share: 1.1 },
+    ARG: { name: "Argentina", emissions: { 2000: 150, 2005: 170, 2010: 190, 2015: 200, 2020: 170, 2024: 180 }, share: 0.5 },
+    CHL: { name: "Chile", emissions: { 2000: 60, 2005: 70, 2010: 80, 2015: 85, 2020: 78, 2024: 82 }, share: 0.2 },
+    COL: { name: "Colombia", emissions: { 2000: 65, 2005: 70, 2010: 75, 2015: 90, 2020: 80, 2024: 95 }, share: 0.3 },
+    NOR: { name: "Norway", emissions: { 2000: 42, 2005: 44, 2010: 46, 2015: 45, 2020: 42, 2024: 40 }, share: 0.1 },
+    SWE: { name: "Sweden", emissions: { 2000: 55, 2005: 52, 2010: 50, 2015: 45, 2020: 38, 2024: 35 }, share: 0.1 },
+    FIN: { name: "Finland", emissions: { 2000: 58, 2005: 60, 2010: 62, 2015: 48, 2020: 40, 2024: 38 }, share: 0.1 },
+    DNK: { name: "Denmark", emissions: { 2000: 55, 2005: 52, 2010: 48, 2015: 38, 2020: 28, 2024: 26 }, share: 0.1 },
+    CHE: { name: "Switzerland", emissions: { 2000: 45, 2005: 46, 2010: 45, 2015: 42, 2020: 36, 2024: 34 }, share: 0.1 },
+    NZL: { name: "New Zealand", emissions: { 2000: 35, 2005: 38, 2010: 36, 2015: 37, 2020: 34, 2024: 33 }, share: 0.1 },
+    SGP: { name: "Singapore", emissions: { 2000: 42, 2005: 45, 2010: 48, 2015: 50, 2020: 48, 2024: 52 }, share: 0.1 },
+    KAZ: { name: "Kazakhstan", emissions: { 2000: 150, 2005: 200, 2010: 250, 2015: 280, 2020: 260, 2024: 280 }, share: 0.7 },
+    UKR: { name: "Ukraine", emissions: { 2000: 320, 2005: 340, 2010: 320, 2015: 230, 2020: 200, 2024: 180 }, share: 0.5 },
+    AUT: { name: "Austria", emissions: { 2000: 68, 2005: 75, 2010: 70, 2015: 68, 2020: 60, 2024: 58 }, share: 0.2 },
+    BEL: { name: "Belgium", emissions: { 2000: 120, 2005: 115, 2010: 110, 2015: 100, 2020: 90, 2024: 88 }, share: 0.2 },
+    CZE: { name: "Czech Republic", emissions: { 2000: 125, 2005: 125, 2010: 115, 2015: 105, 2020: 95, 2024: 90 }, share: 0.2 },
+    GRC: { name: "Greece", emissions: { 2000: 105, 2005: 110, 2010: 95, 2015: 75, 2020: 58, 2024: 55 }, share: 0.1 },
+    PRT: { name: "Portugal", emissions: { 2000: 65, 2005: 68, 2010: 55, 2015: 52, 2020: 42, 2024: 40 }, share: 0.1 },
+    IRL: { name: "Ireland", emissions: { 2000: 45, 2005: 48, 2010: 42, 2015: 40, 2020: 38, 2024: 40 }, share: 0.1 },
+    HUN: { name: "Hungary", emissions: { 2000: 60, 2005: 58, 2010: 52, 2015: 48, 2020: 45, 2024: 44 }, share: 0.1 },
+    ROU: { name: "Romania", emissions: { 2000: 95, 2005: 100, 2010: 85, 2015: 78, 2020: 70, 2024: 68 }, share: 0.2 },
+    // Additional countries with emissions data
+    EGY: { name: "Egypt", emissions: { 2000: 130, 2005: 160, 2010: 210, 2015: 230, 2020: 250, 2024: 270 }, share: 0.7 },
+    VNM: { name: "Vietnam", emissions: { 2000: 55, 2005: 95, 2010: 150, 2015: 200, 2020: 280, 2024: 320 }, share: 0.9 },
+    PAK: { name: "Pakistan", emissions: { 2000: 110, 2005: 140, 2010: 170, 2015: 195, 2020: 215, 2024: 235 }, share: 0.6 },
+    BGD: { name: "Bangladesh", emissions: { 2000: 35, 2005: 50, 2010: 65, 2015: 85, 2020: 100, 2024: 115 }, share: 0.3 },
+    NGA: { name: "Nigeria", emissions: { 2000: 85, 2005: 95, 2010: 95, 2015: 100, 2020: 120, 2024: 140 }, share: 0.4 },
+    PHL: { name: "Philippines", emissions: { 2000: 75, 2005: 80, 2010: 95, 2015: 125, 2020: 140, 2024: 160 }, share: 0.4 },
+    THA: { name: "Thailand", emissions: { 2000: 180, 2005: 230, 2010: 280, 2015: 310, 2020: 290, 2024: 300 }, share: 0.8 },
+    MYS: { name: "Malaysia", emissions: { 2000: 130, 2005: 180, 2010: 220, 2015: 260, 2020: 250, 2024: 270 }, share: 0.7 },
+    ARE: { name: "United Arab Emirates", emissions: { 2000: 90, 2005: 130, 2010: 180, 2015: 200, 2020: 190, 2024: 210 }, share: 0.6 },
+    ISR: { name: "Israel", emissions: { 2000: 62, 2005: 68, 2010: 72, 2015: 70, 2020: 65, 2024: 68 }, share: 0.2 },
+    IRQ: { name: "Iraq", emissions: { 2000: 85, 2005: 100, 2010: 140, 2015: 170, 2020: 180, 2024: 200 }, share: 0.5 },
+    KWT: { name: "Kuwait", emissions: { 2000: 55, 2005: 75, 2010: 95, 2015: 95, 2020: 90, 2024: 95 }, share: 0.3 },
+    QAT: { name: "Qatar", emissions: { 2000: 40, 2005: 55, 2010: 80, 2015: 105, 2020: 100, 2024: 110 }, share: 0.3 },
+    OMN: { name: "Oman", emissions: { 2000: 25, 2005: 40, 2010: 60, 2015: 75, 2020: 80, 2024: 85 }, share: 0.2 },
+    PER: { name: "Peru", emissions: { 2000: 35, 2005: 42, 2010: 55, 2015: 60, 2020: 50, 2024: 55 }, share: 0.1 },
+    VEN: { name: "Venezuela", emissions: { 2000: 150, 2005: 170, 2010: 180, 2015: 160, 2020: 120, 2024: 100 }, share: 0.3 },
+    ECU: { name: "Ecuador", emissions: { 2000: 28, 2005: 35, 2010: 42, 2015: 48, 2020: 42, 2024: 45 }, share: 0.1 },
+    MAR: { name: "Morocco", emissions: { 2000: 35, 2005: 42, 2010: 52, 2015: 62, 2020: 65, 2024: 70 }, share: 0.2 },
+    DZA: { name: "Algeria", emissions: { 2000: 95, 2005: 115, 2010: 130, 2015: 150, 2020: 160, 2024: 170 }, share: 0.5 },
+    LBY: { name: "Libya", emissions: { 2000: 50, 2005: 55, 2010: 60, 2015: 45, 2020: 40, 2024: 50 }, share: 0.1 },
+    TUN: { name: "Tunisia", emissions: { 2000: 22, 2005: 26, 2010: 28, 2015: 30, 2020: 28, 2024: 30 }, share: 0.1 },
+    KEN: { name: "Kenya", emissions: { 2000: 12, 2005: 14, 2010: 16, 2015: 20, 2020: 22, 2024: 25 }, share: 0.1 },
+    ETH: { name: "Ethiopia", emissions: { 2000: 8, 2005: 9, 2010: 12, 2015: 18, 2020: 22, 2024: 28 }, share: 0.1 },
+    GHA: { name: "Ghana", emissions: { 2000: 8, 2005: 10, 2010: 12, 2015: 18, 2020: 22, 2024: 28 }, share: 0.1 },
+    TZA: { name: "Tanzania", emissions: { 2000: 5, 2005: 7, 2010: 10, 2015: 14, 2020: 18, 2024: 22 }, share: 0.1 },
+    AGO: { name: "Angola", emissions: { 2000: 18, 2005: 28, 2010: 35, 2015: 40, 2020: 35, 2024: 38 }, share: 0.1 },
+    MMR: { name: "Myanmar", emissions: { 2000: 12, 2005: 16, 2010: 22, 2015: 30, 2020: 35, 2024: 40 }, share: 0.1 },
+    NPL: { name: "Nepal", emissions: { 2000: 4, 2005: 5, 2010: 8, 2015: 12, 2020: 15, 2024: 18 }, share: 0.0 },
+    LKA: { name: "Sri Lanka", emissions: { 2000: 12, 2005: 14, 2010: 18, 2015: 24, 2020: 22, 2024: 24 }, share: 0.1 },
+    SVK: { name: "Slovakia", emissions: { 2000: 42, 2005: 42, 2010: 38, 2015: 35, 2020: 32, 2024: 30 }, share: 0.1 },
+    BGR: { name: "Bulgaria", emissions: { 2000: 48, 2005: 52, 2010: 50, 2015: 48, 2020: 42, 2024: 40 }, share: 0.1 },
+    HRV: { name: "Croatia", emissions: { 2000: 22, 2005: 24, 2010: 22, 2015: 20, 2020: 18, 2024: 17 }, share: 0.0 },
+    SRB: { name: "Serbia", emissions: { 2000: 48, 2005: 52, 2010: 50, 2015: 52, 2020: 48, 2024: 45 }, share: 0.1 },
+    SVN: { name: "Slovenia", emissions: { 2000: 16, 2005: 18, 2010: 17, 2015: 15, 2020: 14, 2024: 13 }, share: 0.0 },
+    LTU: { name: "Lithuania", emissions: { 2000: 14, 2005: 16, 2010: 16, 2015: 15, 2020: 14, 2024: 13 }, share: 0.0 },
+    LVA: { name: "Latvia", emissions: { 2000: 8, 2005: 9, 2010: 10, 2015: 10, 2020: 9, 2024: 9 }, share: 0.0 },
+    EST: { name: "Estonia", emissions: { 2000: 18, 2005: 19, 2010: 20, 2015: 18, 2020: 12, 2024: 10 }, share: 0.0 },
+    CYP: { name: "Cyprus", emissions: { 2000: 8, 2005: 9, 2010: 9, 2015: 7, 2020: 6, 2024: 6 }, share: 0.0 },
+    MLT: { name: "Malta", emissions: { 2000: 3, 2005: 3, 2010: 3, 2015: 2, 2020: 2, 2024: 2 }, share: 0.0 },
+    LUX: { name: "Luxembourg", emissions: { 2000: 10, 2005: 12, 2010: 12, 2015: 10, 2020: 9, 2024: 9 }, share: 0.0 },
+    ISL: { name: "Iceland", emissions: { 2000: 3, 2005: 4, 2010: 4, 2015: 4, 2020: 4, 2024: 4 }, share: 0.0 },
+    CUB: { name: "Cuba", emissions: { 2000: 28, 2005: 30, 2010: 35, 2015: 32, 2020: 28, 2024: 26 }, share: 0.1 },
+    DOM: { name: "Dominican Republic", emissions: { 2000: 18, 2005: 22, 2010: 25, 2015: 28, 2020: 26, 2024: 28 }, share: 0.1 },
+    GTM: { name: "Guatemala", emissions: { 2000: 12, 2005: 14, 2010: 16, 2015: 20, 2020: 22, 2024: 24 }, share: 0.1 },
+    PAN: { name: "Panama", emissions: { 2000: 8, 2005: 10, 2010: 14, 2015: 18, 2020: 15, 2024: 16 }, share: 0.0 },
+    CRI: { name: "Costa Rica", emissions: { 2000: 6, 2005: 8, 2010: 9, 2015: 10, 2020: 9, 2024: 9 }, share: 0.0 },
+    URY: { name: "Uruguay", emissions: { 2000: 6, 2005: 8, 2010: 10, 2015: 10, 2020: 8, 2024: 8 }, share: 0.0 },
+    PRY: { name: "Paraguay", emissions: { 2000: 4, 2005: 5, 2010: 7, 2015: 8, 2020: 9, 2024: 10 }, share: 0.0 },
+    BOL: { name: "Bolivia", emissions: { 2000: 12, 2005: 15, 2010: 20, 2015: 24, 2020: 22, 2024: 24 }, share: 0.1 },
+    MNG: { name: "Mongolia", emissions: { 2000: 10, 2005: 12, 2010: 18, 2015: 25, 2020: 28, 2024: 30 }, share: 0.1 },
+    TWN: { name: "Taiwan", emissions: { 2000: 250, 2005: 280, 2010: 275, 2015: 280, 2020: 270, 2024: 275 }, share: 0.7 },
+    HKG: { name: "Hong Kong", emissions: { 2000: 35, 2005: 40, 2010: 42, 2015: 45, 2020: 38, 2024: 36 }, share: 0.1 },
+    JOR: { name: "Jordan", emissions: { 2000: 16, 2005: 20, 2010: 24, 2015: 28, 2020: 26, 2024: 28 }, share: 0.1 },
+    LBN: { name: "Lebanon", emissions: { 2000: 18, 2005: 20, 2010: 22, 2015: 25, 2020: 22, 2024: 20 }, share: 0.1 },
+    AZE: { name: "Azerbaijan", emissions: { 2000: 32, 2005: 38, 2010: 38, 2015: 42, 2020: 40, 2024: 42 }, share: 0.1 },
+    BLR: { name: "Belarus", emissions: { 2000: 60, 2005: 65, 2010: 68, 2015: 62, 2020: 55, 2024: 52 }, share: 0.1 },
+    UZB: { name: "Uzbekistan", emissions: { 2000: 115, 2005: 110, 2010: 105, 2015: 105, 2020: 100, 2024: 105 }, share: 0.3 },
+    TKM: { name: "Turkmenistan", emissions: { 2000: 40, 2005: 50, 2010: 65, 2015: 80, 2020: 85, 2024: 90 }, share: 0.2 },
+    GEO: { name: "Georgia", emissions: { 2000: 5, 2005: 6, 2010: 8, 2015: 12, 2020: 12, 2024: 14 }, share: 0.0 },
+    ARM: { name: "Armenia", emissions: { 2000: 4, 2005: 5, 2010: 6, 2015: 6, 2020: 6, 2024: 6 }, share: 0.0 },
+    BIH: { name: "Bosnia and Herzegovina", emissions: { 2000: 18, 2005: 22, 2010: 28, 2015: 30, 2020: 25, 2024: 24 }, share: 0.1 },
+    ALB: { name: "Albania", emissions: { 2000: 4, 2005: 5, 2010: 5, 2015: 6, 2020: 5, 2024: 5 }, share: 0.0 },
+    MKD: { name: "North Macedonia", emissions: { 2000: 12, 2005: 12, 2010: 10, 2015: 10, 2020: 8, 2024: 8 }, share: 0.0 },
+    MNE: { name: "Montenegro", emissions: { 2000: 3, 2005: 3, 2010: 3, 2015: 3, 2020: 2, 2024: 2 }, share: 0.0 },
+    BRN: { name: "Brunei", emissions: { 2000: 6, 2005: 8, 2010: 10, 2015: 12, 2020: 10, 2024: 10 }, share: 0.0 },
+    KHM: { name: "Cambodia", emissions: { 2000: 4, 2005: 5, 2010: 7, 2015: 12, 2020: 18, 2024: 22 }, share: 0.1 },
+    LAO: { name: "Laos", emissions: { 2000: 2, 2005: 3, 2010: 4, 2015: 8, 2020: 20, 2024: 28 }, share: 0.1 },
+    // Africa
+    SDN: { name: "Sudan", emissions: { 2000: 8, 2005: 12, 2010: 16, 2015: 18, 2020: 20, 2024: 22 }, share: 0.1 },
+    SSD: { name: "South Sudan", emissions: { 2000: 2, 2005: 2, 2010: 3, 2015: 4, 2020: 5, 2024: 6 }, share: 0.0 },
+    CMR: { name: "Cameroon", emissions: { 2000: 5, 2005: 6, 2010: 8, 2015: 10, 2020: 12, 2024: 14 }, share: 0.0 },
+    CIV: { name: "Ivory Coast", emissions: { 2000: 6, 2005: 7, 2010: 8, 2015: 10, 2020: 12, 2024: 14 }, share: 0.0 },
+    COD: { name: "DR Congo", emissions: { 2000: 3, 2005: 4, 2010: 5, 2015: 6, 2020: 8, 2024: 10 }, share: 0.0 },
+    ZWE: { name: "Zimbabwe", emissions: { 2000: 12, 2005: 10, 2010: 10, 2015: 12, 2020: 12, 2024: 12 }, share: 0.0 },
+    MOZ: { name: "Mozambique", emissions: { 2000: 2, 2005: 3, 2010: 4, 2015: 6, 2020: 8, 2024: 10 }, share: 0.0 },
+    ZMB: { name: "Zambia", emissions: { 2000: 3, 2005: 4, 2010: 5, 2015: 6, 2020: 7, 2024: 8 }, share: 0.0 },
+    UGA: { name: "Uganda", emissions: { 2000: 3, 2005: 4, 2010: 5, 2015: 6, 2020: 7, 2024: 8 }, share: 0.0 },
+    SEN: { name: "Senegal", emissions: { 2000: 4, 2005: 5, 2010: 6, 2015: 8, 2020: 10, 2024: 12 }, share: 0.0 },
+    MLI: { name: "Mali", emissions: { 2000: 2, 2005: 2, 2010: 3, 2015: 4, 2020: 5, 2024: 6 }, share: 0.0 },
+    NER: { name: "Niger", emissions: { 2000: 2, 2005: 2, 2010: 3, 2015: 4, 2020: 5, 2024: 6 }, share: 0.0 },
+    TCD: { name: "Chad", emissions: { 2000: 1, 2005: 2, 2010: 2, 2015: 3, 2020: 4, 2024: 5 }, share: 0.0 },
+    BFA: { name: "Burkina Faso", emissions: { 2000: 2, 2005: 2, 2010: 3, 2015: 4, 2020: 5, 2024: 6 }, share: 0.0 },
+    BWA: { name: "Botswana", emissions: { 2000: 4, 2005: 5, 2010: 6, 2015: 7, 2020: 7, 2024: 7 }, share: 0.0 },
+    NAM: { name: "Namibia", emissions: { 2000: 3, 2005: 3, 2010: 4, 2015: 4, 2020: 4, 2024: 4 }, share: 0.0 },
+    MWI: { name: "Malawi", emissions: { 2000: 1, 2005: 1, 2010: 2, 2015: 2, 2020: 2, 2024: 3 }, share: 0.0 },
+    RWA: { name: "Rwanda", emissions: { 2000: 1, 2005: 1, 2010: 1, 2015: 2, 2020: 2, 2024: 3 }, share: 0.0 },
+    BDI: { name: "Burundi", emissions: { 2000: 0.3, 2005: 0.4, 2010: 0.5, 2015: 0.6, 2020: 0.8, 2024: 1 }, share: 0.0 },
+    GAB: { name: "Gabon", emissions: { 2000: 5, 2005: 5, 2010: 5, 2015: 6, 2020: 6, 2024: 6 }, share: 0.0 },
+    COG: { name: "Congo", emissions: { 2000: 4, 2005: 5, 2010: 6, 2015: 8, 2020: 10, 2024: 12 }, share: 0.0 },
+    MRT: { name: "Mauritania", emissions: { 2000: 2, 2005: 2, 2010: 3, 2015: 3, 2020: 4, 2024: 4 }, share: 0.0 },
+    SOM: { name: "Somalia", emissions: { 2000: 1, 2005: 1, 2010: 1, 2015: 1, 2020: 2, 2024: 2 }, share: 0.0 },
+    ERI: { name: "Eritrea", emissions: { 2000: 1, 2005: 1, 2010: 1, 2015: 1, 2020: 1, 2024: 1 }, share: 0.0 },
+    MDG: { name: "Madagascar", emissions: { 2000: 2, 2005: 3, 2010: 3, 2015: 4, 2020: 5, 2024: 6 }, share: 0.0 },
+    SWZ: { name: "Eswatini", emissions: { 2000: 1, 2005: 1, 2010: 1, 2015: 1, 2020: 1, 2024: 1 }, share: 0.0 },
+    LSO: { name: "Lesotho", emissions: { 2000: 0.5, 2005: 0.5, 2010: 0.5, 2015: 0.5, 2020: 0.5, 2024: 0.5 }, share: 0.0 },
+    // Asia
+    AFG: { name: "Afghanistan", emissions: { 2000: 2, 2005: 4, 2010: 10, 2015: 12, 2020: 10, 2024: 8 }, share: 0.0 },
+    PRK: { name: "North Korea", emissions: { 2000: 70, 2005: 65, 2010: 60, 2015: 55, 2020: 50, 2024: 45 }, share: 0.1 },
+    KGZ: { name: "Kyrgyzstan", emissions: { 2000: 6, 2005: 7, 2010: 9, 2015: 12, 2020: 14, 2024: 16 }, share: 0.0 },
+    TJK: { name: "Tajikistan", emissions: { 2000: 4, 2005: 5, 2010: 6, 2015: 8, 2020: 10, 2024: 12 }, share: 0.0 },
+    YEM: { name: "Yemen", emissions: { 2000: 18, 2005: 22, 2010: 25, 2015: 20, 2020: 12, 2024: 10 }, share: 0.0 },
+    SYR: { name: "Syria", emissions: { 2000: 55, 2005: 62, 2010: 60, 2015: 25, 2020: 18, 2024: 15 }, share: 0.0 },
+    // Oceania
+    PNG: { name: "Papua New Guinea", emissions: { 2000: 4, 2005: 5, 2010: 7, 2015: 10, 2020: 12, 2024: 14 }, share: 0.0 },
+    FJI: { name: "Fiji", emissions: { 2000: 1, 2005: 1, 2010: 2, 2015: 2, 2020: 2, 2024: 2 }, share: 0.0 },
+    NCL: { name: "New Caledonia", emissions: { 2000: 3, 2005: 4, 2010: 5, 2015: 5, 2020: 4, 2024: 4 }, share: 0.0 },
+    // Central America & Caribbean
+    HND: { name: "Honduras", emissions: { 2000: 6, 2005: 8, 2010: 10, 2015: 12, 2020: 11, 2024: 12 }, share: 0.0 },
+    SLV: { name: "El Salvador", emissions: { 2000: 6, 2005: 7, 2010: 7, 2015: 8, 2020: 7, 2024: 7 }, share: 0.0 },
+    NIC: { name: "Nicaragua", emissions: { 2000: 4, 2005: 5, 2010: 5, 2015: 6, 2020: 6, 2024: 7 }, share: 0.0 },
+    JAM: { name: "Jamaica", emissions: { 2000: 10, 2005: 12, 2010: 10, 2015: 8, 2020: 7, 2024: 7 }, share: 0.0 },
+    HTI: { name: "Haiti", emissions: { 2000: 2, 2005: 2, 2010: 3, 2015: 3, 2020: 4, 2024: 4 }, share: 0.0 },
+    TTO: { name: "Trinidad and Tobago", emissions: { 2000: 22, 2005: 40, 2010: 50, 2015: 45, 2020: 35, 2024: 32 }, share: 0.1 },
+    BHS: { name: "Bahamas", emissions: { 2000: 2, 2005: 2, 2010: 2, 2015: 2, 2020: 2, 2024: 2 }, share: 0.0 },
+    // South America
+    GUY: { name: "Guyana", emissions: { 2000: 2, 2005: 2, 2010: 3, 2015: 3, 2020: 4, 2024: 5 }, share: 0.0 },
+    SUR: { name: "Suriname", emissions: { 2000: 2, 2005: 3, 2010: 3, 2015: 4, 2020: 4, 2024: 5 }, share: 0.0 }
+};
+
+// ============================================================================
+// APPLICATION CODE
+// ============================================================================
+
+let currentYear = 2024;
+let selectedCountry = null;
+let isPlaying = false;
+let playInterval = null;
+
+const countryBounds = {
+    USA:{c:{lon:-98,lat:39},lon:[-130,-65],lat:[24,50]},
+    CHN:{c:{lon:105,lat:35},lon:[73,135],lat:[18,54]},
+    IND:{c:{lon:79,lat:22},lon:[68,97],lat:[6,36]},
+    RUS:{c:{lon:100,lat:60},lon:[30,180],lat:[40,75]},
+    JPN:{c:{lon:138,lat:36},lon:[128,148],lat:[30,46]},
+    DEU:{c:{lon:10,lat:51},lon:[5,16],lat:[47,55]},
+    GBR:{c:{lon:-2,lat:54},lon:[-10,3],lat:[49,60]},
+    FRA:{c:{lon:2,lat:46},lon:[-5,10],lat:[42,51]},
+    BRA:{c:{lon:-53,lat:-10},lon:[-75,-34],lat:[-34,6]},
+    CAN:{c:{lon:-106,lat:56},lon:[-141,-52],lat:[42,70]},
+    AUS:{c:{lon:134,lat:-25},lon:[113,154],lat:[-44,-10]},
+    KOR:{c:{lon:128,lat:36},lon:[124,132],lat:[33,39]},
+    IDN:{c:{lon:118,lat:-2},lon:[95,141],lat:[-11,6]},
+    MEX:{c:{lon:-102,lat:24},lon:[-118,-86],lat:[14,33]},
+    ZAF:{c:{lon:25,lat:-29},lon:[16,33],lat:[-35,-22]},
+    ITA:{c:{lon:12,lat:42},lon:[6,19],lat:[36,47]},
+    ESP:{c:{lon:-4,lat:40},lon:[-10,4],lat:[36,44]},
+    POL:{c:{lon:19,lat:52},lon:[14,24],lat:[49,55]},
+    NLD:{c:{lon:5,lat:52},lon:[3,8],lat:[51,54]},
+    NZL:{c:{lon:174,lat:-41},lon:[166,179],lat:[-47,-34]},
+    CHE:{c:{lon:8,lat:47},lon:[6,11],lat:[46,48]},
+    NOR:{c:{lon:10,lat:62},lon:[4,31],lat:[58,71]},
+    SWE:{c:{lon:16,lat:62},lon:[11,24],lat:[55,69]},
+    FIN:{c:{lon:26,lat:64},lon:[20,32],lat:[59,70]},
+    DNK:{c:{lon:10,lat:56},lon:[8,13],lat:[54,58]},
+    ARG:{c:{lon:-64,lat:-34},lon:[-74,-53],lat:[-55,-22]},
+    CHL:{c:{lon:-71,lat:-35},lon:[-76,-66],lat:[-56,-17]},
+    COL:{c:{lon:-73,lat:4},lon:[-79,-67],lat:[-4,12]},
+    SGP:{c:{lon:104,lat:1},lon:[103,105],lat:[1,2]},
+    KAZ:{c:{lon:67,lat:48},lon:[46,88],lat:[40,56]},
+    UKR:{c:{lon:32,lat:49},lon:[22,40],lat:[45,52]},
+    AUT:{c:{lon:14,lat:47},lon:[9,17],lat:[46,49]},
+    BEL:{c:{lon:4,lat:51},lon:[2,7],lat:[49,52]},
+    CZE:{c:{lon:15,lat:50},lon:[12,19],lat:[49,51]},
+    GRC:{c:{lon:22,lat:39},lon:[19,30],lat:[35,42]},
+    PRT:{c:{lon:-8,lat:39},lon:[-10,-6],lat:[37,42]},
+    IRL:{c:{lon:-8,lat:53},lon:[-11,-6],lat:[51,55]},
+    HUN:{c:{lon:19,lat:47},lon:[16,23],lat:[46,49]},
+    ROU:{c:{lon:25,lat:46},lon:[20,30],lat:[44,48]},
+    SAU:{c:{lon:45,lat:24},lon:[34,56],lat:[16,32]},
+    IRN:{c:{lon:54,lat:32},lon:[44,64],lat:[25,40]},
+    TUR:{c:{lon:35,lat:39},lon:[26,45],lat:[36,42]},
+    EGY:{c:{lon:30,lat:27},lon:[25,35],lat:[22,32]},
+    VNM:{c:{lon:108,lat:16},lon:[102,110],lat:[8,24]},
+    PAK:{c:{lon:70,lat:30},lon:[61,77],lat:[24,37]},
+    BGD:{c:{lon:90,lat:24},lon:[88,93],lat:[21,27]},
+    NGA:{c:{lon:8,lat:10},lon:[3,15],lat:[4,14]},
+    PHL:{c:{lon:122,lat:12},lon:[117,127],lat:[5,20]},
+    THA:{c:{lon:101,lat:15},lon:[97,106],lat:[6,21]},
+    MYS:{c:{lon:109,lat:4},lon:[100,119],lat:[1,7]},
+    ARE:{c:{lon:54,lat:24},lon:[51,56],lat:[22,26]},
+    ISR:{c:{lon:35,lat:31},lon:[34,36],lat:[29,33]},
+    IRQ:{c:{lon:44,lat:33},lon:[38,49],lat:[29,38]},
+    VEN:{c:{lon:-66,lat:7},lon:[-73,-60],lat:[1,12]},
+    PER:{c:{lon:-76,lat:-10},lon:[-82,-68],lat:[-18,0]},
+    MAR:{c:{lon:-6,lat:32},lon:[-13,0],lat:[28,36]},
+    DZA:{c:{lon:3,lat:28},lon:[-9,12],lat:[19,37]},
+    KEN:{c:{lon:38,lat:1},lon:[34,42],lat:[-5,5]},
+    ETH:{c:{lon:40,lat:9},lon:[33,48],lat:[3,15]},
+    GHA:{c:{lon:-1,lat:8},lon:[-3,1],lat:[5,11]},
+    AGO:{c:{lon:17,lat:-12},lon:[12,24],lat:[-18,-5]},
+    MMR:{c:{lon:96,lat:20},lon:[92,101],lat:[10,28]},
+    TWN:{c:{lon:121,lat:24},lon:[120,122],lat:[22,26]},
+    BLR:{c:{lon:28,lat:53},lon:[23,33],lat:[51,56]},
+    UZB:{c:{lon:64,lat:41},lon:[56,73],lat:[37,46]},
+    AZE:{c:{lon:48,lat:40},lon:[45,51],lat:[38,42]},
+    GEO:{c:{lon:44,lat:42},lon:[40,47],lat:[41,44]},
+    MNG:{c:{lon:105,lat:46},lon:[88,120],lat:[42,52]},
+    CUB:{c:{lon:-79,lat:22},lon:[-85,-74],lat:[20,24]},
+    ECU:{c:{lon:-78,lat:-2},lon:[-81,-75],lat:[-5,1]},
+    BOL:{c:{lon:-64,lat:-17},lon:[-70,-57],lat:[-23,-10]},
+    URY:{c:{lon:-56,lat:-33},lon:[-58,-53],lat:[-35,-30]},
+    PRY:{c:{lon:-58,lat:-23},lon:[-63,-54],lat:[-28,-19]},
+    SVK:{c:{lon:19,lat:49},lon:[17,22],lat:[48,50]},
+    BGR:{c:{lon:25,lat:43},lon:[22,29],lat:[42,44]},
+    HRV:{c:{lon:16,lat:45},lon:[13,19],lat:[43,47]},
+    SRB:{c:{lon:21,lat:44},lon:[19,23],lat:[42,46]},
+    SVN:{c:{lon:15,lat:46},lon:[13,17],lat:[45,47]},
+    LTU:{c:{lon:24,lat:56},lon:[21,27],lat:[54,57]},
+    LVA:{c:{lon:25,lat:57},lon:[21,28],lat:[56,58]},
+    EST:{c:{lon:25,lat:59},lon:[22,28],lat:[57,60]},
+    BIH:{c:{lon:18,lat:44},lon:[15,20],lat:[43,45]},
+    ALB:{c:{lon:20,lat:41},lon:[19,21],lat:[40,43]},
+    MKD:{c:{lon:22,lat:41},lon:[20,23],lat:[40,42]},
+    JOR:{c:{lon:36,lat:31},lon:[35,39],lat:[29,33]},
+    LBN:{c:{lon:36,lat:34},lon:[35,37],lat:[33,35]},
+    KHM:{c:{lon:105,lat:13},lon:[102,108],lat:[10,15]},
+    LAO:{c:{lon:104,lat:18},lon:[100,108],lat:[14,23]},
+    // Africa
+    SDN:{c:{lon:30,lat:16},lon:[22,38],lat:[8,23]},
+    SSD:{c:{lon:30,lat:7},lon:[24,36],lat:[3,12]},
+    CMR:{c:{lon:12,lat:6},lon:[9,16],lat:[2,13]},
+    CIV:{c:{lon:-5,lat:8},lon:[-9,-2],lat:[4,11]},
+    COD:{c:{lon:24,lat:-3},lon:[12,31],lat:[-14,5]},
+    ZWE:{c:{lon:29,lat:-19},lon:[25,34],lat:[-22,-15]},
+    MOZ:{c:{lon:35,lat:-18},lon:[30,41],lat:[-27,-10]},
+    ZMB:{c:{lon:27,lat:-14},lon:[22,34],lat:[-18,-8]},
+    UGA:{c:{lon:32,lat:1},lon:[29,35],lat:[-2,4]},
+    SEN:{c:{lon:-14,lat:14},lon:[-17,-11],lat:[12,17]},
+    MLI:{c:{lon:-4,lat:17},lon:[-12,4],lat:[10,25]},
+    NER:{c:{lon:9,lat:18},lon:[0,16],lat:[12,24]},
+    TCD:{c:{lon:19,lat:15},lon:[14,24],lat:[8,23]},
+    BFA:{c:{lon:-2,lat:12},lon:[-5,2],lat:[9,15]},
+    BWA:{c:{lon:24,lat:-22},lon:[20,29],lat:[-27,-18]},
+    NAM:{c:{lon:17,lat:-22},lon:[12,25],lat:[-29,-17]},
+    MWI:{c:{lon:34,lat:-13},lon:[33,36],lat:[-17,-9]},
+    RWA:{c:{lon:30,lat:-2},lon:[29,31],lat:[-3,-1]},
+    BDI:{c:{lon:30,lat:-3},lon:[29,31],lat:[-4,-2]},
+    GAB:{c:{lon:11,lat:-1},lon:[9,14],lat:[-4,2]},
+    COG:{c:{lon:15,lat:-1},lon:[11,18],lat:[-5,4]},
+    MRT:{c:{lon:-10,lat:20},lon:[-17,-5],lat:[15,27]},
+    SOM:{c:{lon:46,lat:6},lon:[41,52],lat:[-2,12]},
+    ERI:{c:{lon:39,lat:15},lon:[36,43],lat:[13,18]},
+    MDG:{c:{lon:47,lat:-19},lon:[43,51],lat:[-26,-12]},
+    SWZ:{c:{lon:31,lat:-26},lon:[31,32],lat:[-27,-26]},
+    LSO:{c:{lon:29,lat:-29},lon:[27,30],lat:[-30,-29]},
+    // Asia
+    AFG:{c:{lon:66,lat:34},lon:[60,75],lat:[29,39]},
+    PRK:{c:{lon:127,lat:40},lon:[124,131],lat:[38,43]},
+    KGZ:{c:{lon:74,lat:41},lon:[69,80],lat:[39,44]},
+    TJK:{c:{lon:69,lat:39},lon:[67,75],lat:[37,41]},
+    YEM:{c:{lon:48,lat:15},lon:[43,54],lat:[12,19]},
+    SYR:{c:{lon:38,lat:35},lon:[35,42],lat:[32,37]},
+    // Oceania
+    PNG:{c:{lon:145,lat:-6},lon:[141,156],lat:[-12,0]},
+    FJI:{c:{lon:178,lat:-18},lon:[177,180],lat:[-21,-16]},
+    NCL:{c:{lon:165,lat:-21},lon:[164,167],lat:[-23,-20]},
+    // Central America & Caribbean
+    HND:{c:{lon:-86,lat:15},lon:[-90,-83],lat:[13,17]},
+    SLV:{c:{lon:-89,lat:14},lon:[-90,-88],lat:[13,15]},
+    NIC:{c:{lon:-85,lat:13},lon:[-88,-83],lat:[11,15]},
+    JAM:{c:{lon:-77,lat:18},lon:[-79,-76],lat:[17,19]},
+    HTI:{c:{lon:-72,lat:19},lon:[-74,-72],lat:[18,20]},
+    TTO:{c:{lon:-61,lat:10},lon:[-62,-60],lat:[10,11]},
+    BHS:{c:{lon:-77,lat:24},lon:[-79,-74],lat:[21,27]},
+    // South America
+    GUY:{c:{lon:-59,lat:5},lon:[-61,-57],lat:[1,9]},
+    SUR:{c:{lon:-56,lat:4},lon:[-58,-54],lat:[2,6]}
+};
+
+function getCoverageForYear(year) {
+    // Find closest year with data
+    const years = Object.keys(COVERAGE_DATA).map(Number).sort((a,b) => a-b);
+    let dataYear = years[0];
+    for (const y of years) {
+        if (y <= year) dataYear = y;
+        else break;
+    }
+    return COVERAGE_DATA[dataYear] || {};
+}
+
+function getEmissionsForYear(iso, year) {
+    const data = EMISSIONS_DATA[iso];
+    if (!data) return null;
+    
+    const years = Object.keys(data.emissions).map(Number).sort((a,b) => a-b);
+    let dataYear = years[0];
+    for (const y of years) {
+        if (y <= year) dataYear = y;
+        else break;
+    }
+    return data.emissions[dataYear];
+}
+
+function buildCountryData(year) {
+    const coverage = getCoverageForYear(year);
+    const countries = {};
+    let globalCovered = 0;
+    
+    // Process regular countries
+    for (const [iso, data] of Object.entries(EMISSIONS_DATA)) {
+        const emissions = getEmissionsForYear(iso, year);
+        let cov = coverage[iso] || 0;
+        
+        // EU countries get EU ETS coverage
+        if (EU_COUNTRIES.includes(iso) && coverage.EU) {
+            cov = coverage.EU / EU_COUNTRIES.length * 5; // Distribute EU coverage
+        }
+        
+        const coveredMt = emissions * (cov / 100);
+        globalCovered += cov;
+        
+        countries[iso] = {
+            name: data.name,
+            emissions: emissions,
+            share: data.share,
+            coverage: cov,
+            coveredMt: coveredMt
+        };
+    }
+    
+    return { countries, globalCoverage: globalCovered };
+}
+
+function updateMap() {
+    const data = buildCountryData(currentYear);
+    
+    const locations = Object.keys(data.countries);
+    const coverage = locations.map(iso => data.countries[iso].coverage);
+    const hoverText = locations.map(iso => {
+        const c = data.countries[iso];
+        return `<b>${c.name}</b><br>CO₂: ${c.emissions.toLocaleString()} Mt<br>Global Share: ${c.share.toFixed(1)}%<br>Policy Coverage: ${c.coverage.toFixed(2)}%`;
+    });
+    
+    Plotly.newPlot('map', [{
+        type: 'choropleth',
+        locations: locations,
+        z: coverage,
+        text: hoverText,
+        hoverinfo: 'text',
+        colorscale: [[0,'#1a1f26'],[0.001,'#1e3a2f'],[0.01,'#235c3e'],[0.05,'#2a7d4f'],[0.1,'#32a05f'],[0.2,'#3fb950'],[0.35,'#56c96a'],[0.5,'#6dd584'],[0.7,'#8ee09e'],[0.85,'#afedb8'],[1,'#d4f8d4']],
+        zmin: 0,
+        zmax: 10,
+        showscale: true,
+        colorbar: {title:{text:'Coverage %',font:{color:'#8b949e',size:10}},thickness:14,len:0.6,tickfont:{color:'#8b949e',size:9},x:1.02,ticksuffix:'%',tickformat:'.1f',outlinewidth:0,bgcolor:'rgba(22,27,34,0.8)',borderwidth:0},
+        marker: {line:{color:'rgba(88,166,255,0.25)',width:0.6}}
+    },{
+        type: 'scattergeo',
+        mode: 'lines',
+        name: 'Latitude Grid',
+        lon: [].concat(...Array.from({length:13},(_,i)=>[-180,180,null])),
+        lat: [].concat(...Array.from({length:13},(_,i)=>[i*15-90,i*15-90,null])),
+        line: {color:'rgba(88,166,255,0.06)',width:0.5},
+        hoverinfo: 'none',
+        showlegend: false
+    },{
+        type: 'scattergeo',
+        mode: 'lines',
+        name: 'Longitude Grid',
+        lon: [].concat(...Array.from({length:13},(_,i)=>[i*30-180,i*30-180,null])),
+        lat: [].concat(...Array.from({length:13},(_,i)=>[-90,90,null])),
+        line: {color:'rgba(88,166,255,0.06)',width:0.5},
+        hoverinfo: 'none',
+        showlegend: false
+    },{
+        type: 'scattergeo',
+        mode: 'lines',
+        name: 'Equator',
+        lon: [-180,180],
+        lat: [0,0],
+        line: {color:'rgba(245,158,11,0.4)',width:1.2,dash:'dot'},
+        hoverinfo: 'none',
+        showlegend: false
+    },{
+        type: 'scattergeo',
+        mode: 'lines',
+        name: 'Tropic of Cancer',
+        lon: [-180,180],
+        lat: [23.5,23.5],
+        line: {color:'rgba(218,119,42,0.25)',width:0.8,dash:'dash'},
+        hoverinfo: 'none',
+        showlegend: false
+    },{
+        type: 'scattergeo',
+        mode: 'lines',
+        name: 'Tropic of Capricorn',
+        lon: [-180,180],
+        lat: [-23.5,-23.5],
+        line: {color:'rgba(218,119,42,0.25)',width:0.8,dash:'dash'},
+        hoverinfo: 'none',
+        showlegend: false
+    },{
+        type: 'scattergeo',
+        mode: 'lines',
+        name: 'Arctic Circle',
+        lon: [-180,180],
+        lat: [66.5,66.5],
+        line: {color:'rgba(88,166,255,0.3)',width:0.8,dash:'dash'},
+        hoverinfo: 'none',
+        showlegend: false
+    },{
+        type: 'scattergeo',
+        mode: 'markers+text',
+        name: 'Major Capitals',
+        lon: [-77,-0.1,139.7,116.4,37.6,-43.2,28,77.2,2.3,-99.1],
+        lat: [38.9,51.5,35.7,39.9,55.8,-22.9,41,28.6,48.9,19.4],
+        text: ['Washington','London','Tokyo','Beijing','Moscow','Rio','Istanbul','Delhi','Paris','Mexico City'],
+        textposition: 'top center',
+        textfont: {color:'rgba(139,148,158,0.7)',size:8,family:'Inter'},
+        marker: {size:4,color:'rgba(139,148,158,0.5)',symbol:'circle'},
+        hoverinfo: 'text',
+        showlegend: false
+    }], {
+        geo: {showframe:false,showcoastlines:true,coastlinecolor:'rgba(139,148,158,0.5)',projection:{type:'natural earth'},bgcolor:'#0d1117',landcolor:'#1c2128',showocean:true,oceancolor:'#080b0f',showcountries:true,countrycolor:'rgba(48,54,61,0.8)',showlakes:true,lakecolor:'#080b0f',showrivers:false,resolution:50,lonaxis:{range:[-170,180]},lataxis:{range:[-60,85]},framewidth:0,showsubunits:true,subunitcolor:'rgba(48,54,61,0.4)'},
+        paper_bgcolor:'#161b22',
+        margin:{t:5,b:5,l:5,r:50},
+        dragmode:'pan',
+        showlegend:false
+    }, {displayModeBar:false,responsive:true,scrollZoom:true});
+    
+    document.getElementById('map').on('plotly_click', d => { 
+        if(d.points && d.points[0]) showCountry(d.points[0].location); 
+    });
+    
+    document.getElementById('globalCoverage').textContent = data.globalCoverage.toFixed(1) + '%';
+    
+    // Calculate total global emissions for the year
+    let totalEmissions = 0;
+    for (const iso of Object.keys(data.countries)) {
+        totalEmissions += data.countries[iso].emissions;
+    }
+    document.getElementById('globalEmissions').textContent = (totalEmissions / 1000).toFixed(1);
+    
+    if (selectedCountry) showCountry(selectedCountry);
+}
+
+function showCountry(iso) {
+    selectedCountry = iso;
+    const data = buildCountryData(currentYear);
+    const c = data.countries[iso];
+    if (!c) return;
+    
+    document.getElementById('countryName').textContent = `${c.name} (${currentYear})`;
+    document.getElementById('totalEmissions').textContent = c.emissions.toLocaleString();
+    document.getElementById('coveredEmissions').textContent = c.coveredMt.toFixed(1);
+    document.getElementById('uncoveredEmissions').textContent = (c.emissions - c.coveredMt).toFixed(1);
+    document.getElementById('worldShare').textContent = c.share.toFixed(1) + '%';
+    document.getElementById('nationalCoverage').textContent = c.coverage.toFixed(2) + '%';
+    
+    // Render trend sparkline
+    renderTrendChart(iso);
+    
+    // Update URL
+    updateURL();
+    
+    const b = countryBounds[iso] || {c:{lon:0,lat:20},lon:[-180,180],lat:[-60,85]};
+    Plotly.newPlot('countryMap', [{
+        type:'choropleth',locations:[iso],z:[c.coverage],colorscale:[[0,'#2a7d4f'],[1,'#3fb950']],showscale:false,marker:{line:{color:'#58a6ff',width:2}},hoverinfo:'none'
+    }], {
+        geo:{showframe:false,showcoastlines:true,coastlinecolor:'rgba(139,148,158,0.35)',projection:{type:'natural earth'},bgcolor:'#161b22',landcolor:'#21262d',showocean:true,oceancolor:'#0d1117',showcountries:true,countrycolor:'rgba(48,54,61,0.5)',showlakes:true,lakecolor:'#0d1117',center:b.c,lonaxis:{range:b.lon},lataxis:{range:b.lat}},
+        paper_bgcolor:'#161b22',margin:{t:0,b:0,l:0,r:0}
+    }, {displayModeBar:false,staticPlot:true});
+}
+
+function togglePlay() {
+    isPlaying = !isPlaying;
+    document.getElementById('playBtn').textContent = isPlaying ? 'Pause' : 'Play';
+    if (isPlaying) {
+        playInterval = setInterval(() => {
+            currentYear = currentYear >= 2025 ? 1990 : currentYear + 1;
+            document.getElementById('yearSlider').value = currentYear;
+            document.getElementById('yearDisplay').textContent = currentYear;
+            updateMap();
+        }, 400);
+    } else clearInterval(playInterval);
+}
+
+function resetYear() {
+    if (isPlaying) togglePlay();
+    currentYear = 1990;
+    document.getElementById('yearSlider').value = 1990;
+    document.getElementById('yearDisplay').textContent = 1990;
+    updateMap();
+}
+
+function toggleModal() {
+    document.getElementById('modalOverlay').classList.toggle('active');
+}
+
+function closeModalOutside(event) {
+    if (event.target.id === 'modalOverlay') {
+        toggleModal();
+    }
+}
+
+// ============================================================================
+// COUNTRY SEARCH
+// ============================================================================
+let searchIndex = -1;
+const searchInput = document.getElementById('countrySearch');
+const searchResults = document.getElementById('searchResults');
+
+function buildSearchIndex() {
+    return Object.entries(EMISSIONS_DATA).map(([iso, data]) => ({
+        iso,
+        name: data.name,
+        searchText: `${data.name} ${iso}`.toLowerCase()
+    })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+const countrySearchData = buildSearchIndex();
+
+function filterCountries(query) {
+    if (!query.trim()) return [];
+    const q = query.toLowerCase();
+    return countrySearchData.filter(c => c.searchText.includes(q)).slice(0, 8);
+}
+
+function renderSearchResults(results) {
+    if (results.length === 0) {
+        searchResults.classList.remove('active');
+        return;
+    }
+    searchResults.innerHTML = results.map((c, i) => 
+        `<div class="search-result${i === searchIndex ? ' selected' : ''}" data-iso="${c.iso}" role="option">${c.name}<span class="search-result-code">${c.iso}</span></div>`
+    ).join('');
+    searchResults.classList.add('active');
+}
+
+function selectSearchResult(iso) {
+    searchInput.value = '';
+    searchResults.classList.remove('active');
+    searchIndex = -1;
+    showCountry(iso);
+}
+
+// ============================================================================
+// TREND SPARKLINE
+// ============================================================================
+function renderTrendChart(iso) {
+    const container = document.getElementById('trendContainer');
+    const svg = document.getElementById('trendSvg');
+    const line = document.getElementById('trendLine');
+    const area = document.getElementById('trendArea');
+    const dot = document.getElementById('trendDot');
+    
+    const years = [1990, 1995, 2000, 2005, 2008, 2010, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
+    const coverages = years.map(y => {
+        const cov = getCoverageForYear(y);
+        let val = cov[iso] || 0;
+        if (EU_COUNTRIES.includes(iso) && cov.EU) val = cov.EU / EU_COUNTRIES.length * 5;
+        return val;
+    });
+    
+    const maxCov = Math.max(...coverages, 0.1);
+    const width = svg.clientWidth || 200;
+    const height = svg.clientHeight || 50;
+    const padding = 4;
+    
+    const points = coverages.map((c, i) => ({
+        x: padding + (i / (years.length - 1)) * (width - padding * 2),
+        y: height - padding - (c / maxCov) * (height - padding * 2)
+    }));
+    
+    const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    const areaD = pathD + ` L${points[points.length-1].x.toFixed(1)},${height} L${points[0].x.toFixed(1)},${height} Z`;
+    
+    line.setAttribute('d', pathD);
+    area.setAttribute('d', areaD);
+    
+    // Show current year dot
+    const currentIdx = years.findIndex(y => y >= currentYear) || years.length - 1;
+    const actualIdx = Math.min(currentIdx, points.length - 1);
+    dot.setAttribute('cx', points[actualIdx].x);
+    dot.setAttribute('cy', points[actualIdx].y);
+    dot.style.display = 'block';
+    
+    container.style.display = 'block';
+}
+
+// ============================================================================
+// URL STATE MANAGEMENT
+// ============================================================================
+function updateURL() {
+    const params = new URLSearchParams();
+    params.set('year', currentYear);
+    if (selectedCountry) params.set('country', selectedCountry);
+    history.replaceState(null, '', '?' + params.toString());
+}
+
+function loadFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const year = parseInt(params.get('year'));
+    const country = params.get('country');
+    
+    if (year >= 1990 && year <= 2025) {
+        currentYear = year;
+        document.getElementById('yearSlider').value = year;
+        document.getElementById('yearDisplay').textContent = year;
+    }
+    
+    if (country && EMISSIONS_DATA[country]) {
+        selectedCountry = country;
+    }
+}
+
+// ============================================================================
+// DEBOUNCED MAP UPDATE
+// ============================================================================
+let updateTimeout = null;
+let cachedData = {};
+
+function getCachedData(year) {
+    if (!cachedData[year]) {
+        cachedData[year] = buildCountryData(year);
+    }
+    return cachedData[year];
+}
+
+function debouncedUpdateMap() {
+    if (updateTimeout) clearTimeout(updateTimeout);
+    updateTimeout = setTimeout(() => updateMap(), 50);
+}
+
+// ============================================================================
+// INTERPOLATED EMISSIONS
+// ============================================================================
+function getInterpolatedEmissions(iso, year) {
+    const data = EMISSIONS_DATA[iso];
+    if (!data) return null;
+    
+    const years = Object.keys(data.emissions).map(Number).sort((a,b) => a-b);
+    
+    // Exact match
+    if (data.emissions[year] !== undefined) return data.emissions[year];
+    
+    // Find surrounding years
+    let lower = years[0], upper = years[years.length - 1];
+    for (let i = 0; i < years.length - 1; i++) {
+        if (years[i] <= year && years[i+1] >= year) {
+            lower = years[i];
+            upper = years[i+1];
+            break;
+        }
+    }
+    
+    if (year <= lower) return data.emissions[lower];
+    if (year >= upper) return data.emissions[upper];
+    
+    // Linear interpolation
+    const ratio = (year - lower) / (upper - lower);
+    return data.emissions[lower] + (data.emissions[upper] - data.emissions[lower]) * ratio;
+}
+
+// ============================================================================
+// ENHANCED KEYBOARD NAVIGATION
+// ============================================================================
+function handleKeyboard(e) {
+    // Year navigation with arrow keys
+    if (e.key === 'ArrowLeft' && document.activeElement !== searchInput) {
+        e.preventDefault();
+        currentYear = Math.max(1990, currentYear - 1);
+        document.getElementById('yearSlider').value = currentYear;
+        document.getElementById('yearDisplay').textContent = currentYear;
+        updateMap();
+        updateURL();
+    }
+    if (e.key === 'ArrowRight' && document.activeElement !== searchInput) {
+        e.preventDefault();
+        currentYear = Math.min(2025, currentYear + 1);
+        document.getElementById('yearSlider').value = currentYear;
+        document.getElementById('yearDisplay').textContent = currentYear;
+        updateMap();
+        updateURL();
+    }
+    
+    // Focus search with /
+    if (e.key === '/' && document.activeElement !== searchInput) {
+        e.preventDefault();
+        searchInput.focus();
+    }
+    
+    // Close modal on Escape
+    if (e.key === 'Escape') {
+        if (searchResults.classList.contains('active')) {
+            searchResults.classList.remove('active');
+            searchIndex = -1;
+        } else if (document.getElementById('modalOverlay').classList.contains('active')) {
+            toggleModal();
+        }
+    }
+    
+    // Search results navigation
+    if (document.activeElement === searchInput && searchResults.classList.contains('active')) {
+        const results = searchResults.querySelectorAll('.search-result');
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            searchIndex = Math.min(searchIndex + 1, results.length - 1);
+            results.forEach((r, i) => r.classList.toggle('selected', i === searchIndex));
+        }
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            searchIndex = Math.max(searchIndex - 1, 0);
+            results.forEach((r, i) => r.classList.toggle('selected', i === searchIndex));
+        }
+        if (e.key === 'Enter' && searchIndex >= 0) {
+            e.preventDefault();
+            selectSearchResult(results[searchIndex].dataset.iso);
+        }
+    }
+    
+    // Space to toggle play
+    if (e.key === ' ' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'BUTTON') {
+        e.preventDefault();
+        togglePlay();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Load state from URL
+    loadFromURL();
+    
+    updateMap();
+    
+    // If country was in URL, show it
+    if (selectedCountry) {
+        showCountry(selectedCountry);
+    }
+    
+    document.getElementById('yearSlider').addEventListener('input', function(e) {
+        currentYear = parseInt(e.target.value);
+        document.getElementById('yearDisplay').textContent = currentYear;
+        debouncedUpdateMap();
+    });
+    
+    document.getElementById('yearSlider').addEventListener('change', function() {
+        updateURL();
+    });
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', handleKeyboard);
+    
+    // Country search
+    searchInput.addEventListener('input', function(e) {
+        const results = filterCountries(e.target.value);
+        searchIndex = -1;
+        renderSearchResults(results);
+    });
+    
+    searchInput.addEventListener('focus', function() {
+        if (this.value.trim()) {
+            renderSearchResults(filterCountries(this.value));
+        }
+    });
+    
+    searchInput.addEventListener('blur', function() {
+        // Delay to allow click on result
+        setTimeout(() => {
+            searchResults.classList.remove('active');
+            searchIndex = -1;
+        }, 200);
+    });
+    
+    searchResults.addEventListener('click', function(e) {
+        const result = e.target.closest('.search-result');
+        if (result) {
+            selectSearchResult(result.dataset.iso);
+        }
+    });
+});
+</script>
+</body>
+</html>
