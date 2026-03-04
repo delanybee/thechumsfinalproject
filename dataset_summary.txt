@@ -1,0 +1,27 @@
+Dataset Summaries
+=================
+
+1. API_NY.GDP.MKTP.CD_DS2_en_excel_v2_3.csv (World Bank GDP Data)
+-----------------------------------------------------------------
+Source: World Development Indicators (updated Feb 24, 2026)
+Content: GDP in current US$ for 267 countries/regions from 1960-2025
+Structure: 271 rows × 68 columns (country name, country code, indicator info, then yearly GDP values)
+Coverage: Includes individual countries (Afghanistan to Zimbabwe) plus regional aggregates (Africa Eastern/Southern, Arab World, etc.)
+
+2. Compliance Emissions.csv (Carbon Pricing Initiatives)
+---------------------------------------------------------
+Source: EDGAR database (updated April 1, 2025)
+Content: Share of global GHG emissions covered by 92 carbon pricing instruments from 1990-2025
+Structure: 95 rows × 37 columns (initiative name + 36 years of data)
+Instruments covered: 
+  - Emissions Trading Systems (ETS): EU ETS, China national ETS, California CaT, Korea ETS, UK ETS, regional pilot programs
+  - Carbon taxes: Finland, Sweden, Norway, France, Japan, South Africa, and many others
+Geographic scope: Global, including national, state, and provincial-level instruments
+
+3. owid-co2-data.csv (Our World in Data CO2 Dataset)
+-----------------------------------------------------
+Source: Our World in Data
+Content: Comprehensive CO2 and greenhouse gas emissions data from 1750-present
+Structure: 50,413 rows × 79 columns
+Key variables: CO2 emissions (total, per capita, per GDP), emissions by source (coal, oil, gas, cement), land use change, methane, nitrous oxide, cumulative emissions, energy consumption, temperature change contributions, trade-adjusted emissions
+Geographic scope: All countries with ISO codes, plus aggregated regions
