@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="theme-color" content="#0d1117">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Interactive visualization tracking global carbon policy coverage from 1990-2025">
     <title>How Much Carbon Is Covered?</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -120,8 +124,92 @@
         .keyboard-hints{position:fixed;bottom:16px;left:16px;display:flex;gap:8px;opacity:0.6;font-size:10px;color:#6e7681;z-index:50}
         .kbd{background:rgba(33,38,45,0.9);border:1px solid rgba(48,54,61,0.6);border-radius:4px;padding:3px 6px;font-family:monospace}
         /* Mobile Responsive */
-        @media(max-width:900px){.main{grid-template-columns:1fr;grid-template-rows:1fr auto}.sidebar{flex-direction:row;flex-wrap:wrap;overflow-x:auto;gap:10px;padding-bottom:8px}.widget{min-width:280px;flex:1}.widget.map-widget{min-height:200px}.year-bar{flex-wrap:wrap;gap:12px;padding:12px 16px}.global-coverage,.global-emissions{padding:6px 12px}.gc-value,.ge-value{font-size:16px}.keyboard-hints{display:none}.search-container{width:220px}}
-        @media(max-width:600px){.app{padding:10px}.header h1{font-size:1.6rem}.year-bar{flex-direction:column;align-items:stretch}.slider-wrap{order:1}.play-btn{flex:1}.global-coverage,.global-emissions{justify-content:center}.info-btn{padding:10px 16px;font-size:12px;top:10px;right:10px}.search-container{width:calc(100% - 32px);left:16px;right:16px}}
+        @media(max-width:1024px){
+            .main{grid-template-columns:1fr 280px}
+            .search-container{width:240px}
+        }
+        @media(max-width:900px){
+            .main{grid-template-columns:1fr;grid-template-rows:1fr auto;gap:12px}
+            .map-panel{min-height:50vh}
+            .sidebar{flex-direction:row;flex-wrap:wrap;gap:10px;padding:0}
+            .widget{min-width:calc(50% - 5px);flex:1;padding:10px}
+            .widget.map-widget{min-width:100%;min-height:140px;order:-1}
+            .year-bar{flex-wrap:wrap;gap:10px;padding:10px 14px}
+            .global-coverage,.global-emissions{padding:6px 10px;flex:1;min-width:140px}
+            .gc-value,.ge-value{font-size:16px}
+            .keyboard-hints{display:none}
+            .search-container{width:200px;top:12px;left:12px}
+            .search-input{padding:10px 12px 10px 36px;font-size:12px}
+            .info-btn{padding:8px 14px;font-size:12px;top:12px;right:12px}
+        }
+        @media(max-width:600px){
+            html,body{overflow-x:hidden;overflow-y:auto;height:auto;min-height:100vh}
+            .app{padding:8px;gap:10px;height:auto;min-height:100vh;grid-template-rows:auto 1fr}
+            .header{padding:8px 0 4px}
+            .header h1{font-size:1.4rem;padding-bottom:6px}
+            .header .subtitle{font-size:9px;letter-spacing:1.5px}
+            .map-panel{min-height:45vh;border-radius:12px}
+            #map{min-height:35vh}
+            .year-bar{flex-direction:column;align-items:stretch;gap:8px;padding:10px 12px}
+            .slider-wrap{order:1;gap:10px}
+            .year-slider{height:8px}
+            .year-slider::-webkit-slider-thumb{width:24px;height:24px}
+            .year-display{font-size:20px}
+            .play-btn{padding:10px 14px;font-size:13px}
+            .global-coverage,.global-emissions{justify-content:center;padding:8px 12px}
+            .gc-label,.ge-label{font-size:9px}
+            .gc-value,.ge-value{font-size:18px}
+            .sidebar{flex-direction:column;gap:8px}
+            .widget{min-width:100%;padding:10px}
+            .widget.map-widget{min-height:120px}
+            .stat-grid{gap:6px}
+            .stat-item{padding:8px 6px}
+            .stat-value{font-size:18px}
+            .stat-label{font-size:7px}
+            .search-container{width:calc(100% - 100px);left:10px;top:10px}
+            .search-input{padding:10px 12px 10px 34px;font-size:13px;border-radius:8px}
+            .search-icon{left:11px;width:14px;height:14px}
+            .info-btn{padding:10px 12px;font-size:11px;top:10px;right:10px;gap:6px}
+            .info-btn svg{width:14px;height:14px}
+            .trend-container{padding:6px;margin-top:6px}
+            .trend-chart{height:35px}
+            .modal{max-width:95%;border-radius:16px}
+            .modal-header{padding:16px 20px 14px}
+            .modal-header h2{font-size:16px}
+            .modal-body{padding:16px 20px}
+            .modal-section{margin-bottom:18px}
+            .modal-section h3{font-size:11px}
+            .modal-section p{font-size:13px;line-height:1.6}
+            .modal-sources{flex-direction:column}
+            .source-badge{min-width:100%}
+        }
+        @media(max-width:400px){
+            .header h1{font-size:1.2rem}
+            .stat-grid{grid-template-columns:1fr}
+            .stat-item.full{grid-column:1}
+            .gc-value,.ge-value{font-size:16px}
+            .year-display{font-size:18px}
+            .info-btn span{display:none}
+            .info-btn{padding:10px}
+        }
+        /* Touch-friendly enhancements */
+        @media(hover:none) and (pointer:coarse){
+            .year-slider{height:10px}
+            .year-slider::-webkit-slider-thumb{width:28px;height:28px}
+            .play-btn{min-height:44px}
+            .search-input{min-height:44px}
+            .info-btn{min-height:44px}
+            .search-result{padding:14px;min-height:44px}
+        }
+        /* Landscape phone */
+        @media(max-height:500px) and (orientation:landscape){
+            .app{grid-template-rows:auto 1fr;gap:8px}
+            .header{padding:4px 0}
+            .header h1{font-size:1.2rem}
+            .map-panel{min-height:auto}
+            .sidebar{flex-direction:row;flex-wrap:nowrap;overflow-x:auto}
+            .widget{min-width:200px;flex:0 0 auto}
+        }
         /* Skip link for accessibility */
         .skip-link{position:absolute;top:-40px;left:0;background:#58a6ff;color:#0d1117;padding:8px 16px;z-index:1001;transition:top 0.3s ease}
         .skip-link:focus{top:0}
